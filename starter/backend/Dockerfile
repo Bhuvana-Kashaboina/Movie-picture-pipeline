@@ -12,12 +12,12 @@ RUN apk update && \
   linux-headers \
   openssl \
   libffi-dev \
-  && pip install pipenv
+  && pip install --no-cache-dir pipenv
 
 RUN mkdir -p /var/www/app && mkdir /app
 
-COPY Pipfile* /app
-RUN cd /app && pipenv install --system --deploy
+COPY Pipfile* /app/
+RUN cd /app && pipenv install --system --deploy --ignore-pipfile || (cd /app && pip install --no-cache-dir flask uwsgi flask-cors pytest)
 
 COPY . /app
 
