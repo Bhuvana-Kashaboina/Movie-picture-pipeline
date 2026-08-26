@@ -1,3 +1,4 @@
+# Backend test suite for Movie Picture API
 from . import app
 import os
 
