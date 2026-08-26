@@ -1,6 +1,9 @@
 name: Provision AWS Infrastructure with Terraform
 
 on:
+  push:
+    paths:
+      - 'setup/terraform/**'
   workflow_dispatch:
     inputs:
       action:
@@ -40,11 +43,21 @@ jobs:
         working-directory: setup/terraform
         run: terraform init
 
+      - name: Import existing resources if needed
+        working-directory: setup/terraform
+        run: |
+          terraform import aws_ecr_repository.frontend frontend || true
+          terraform import aws_ecr_repository.backend backend || true
+          terraform import aws_iam_role.eks_cluster eks_cluster_role || true
+          terraform import aws_iam_role.node_group udacity-node-group || true
+          terraform import aws_iam_role.codebuild codebuild-role || true
+          terraform import aws_iam_user.github_action_user github-action-user || true
+          terraform import aws_codebuild_project.codebuild udacity || true
+
       - name: Terraform Apply
         if: ${{ github.event.inputs.action != 'destroy' }}
         working-directory: setup/terraform
-        run: |
-          terraform apply -auto-approve || (echo "=== RETRYING APPLY OR IMPORTING EXISTING ===" && terraform apply -auto-approve)
+        run: terraform apply -auto-approve
 
       - name: Authorize github-action-user in EKS (aws-auth)
         if: ${{ github.event.inputs.action != 'destroy' }}
