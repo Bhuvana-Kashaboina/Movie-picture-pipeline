@@ -1,5 +1,5 @@
 ####################
-# VPC Configuration
+# VPC Configuration (v1.30)
 ####################
 # Create a VPC
 resource "aws_vpc" "vpc" {
