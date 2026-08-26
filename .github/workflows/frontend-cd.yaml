@@ -10,6 +10,7 @@ env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: cluster
   ECR_REPOSITORY: frontend
+  BACKEND_URL: http://a4d385b4b5edb4499b226a83ce2c2866-2007589687.us-east-1.elb.amazonaws.com
 
 jobs:
   lint:
@@ -96,13 +97,14 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-          REACT_APP_MOVIE_API_URL: ${{ secrets.REACT_APP_MOVIE_API_URL }}
         working-directory: starter/frontend
         run: |
           set -ex
-          API_URL="${REACT_APP_MOVIE_API_URL:-http://localhost:5000}"
-          echo "Building image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "API_URL: $API_URL"
+          API_URL="${{ secrets.REACT_APP_MOVIE_API_URL }}"
+          if [ -z "$API_URL" ]; then
+            API_URL="${{ env.BACKEND_URL }}"
+          fi
+          echo "Building image with API_URL=$API_URL"
           docker build --build-arg REACT_APP_MOVIE_API_URL="$API_URL" \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
@@ -121,9 +123,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          set -x
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
           cd starter/frontend/k8s
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          kustomize build . | kubectl apply --validate=false -f - || kubectl apply -f deployment.yaml -f service.yaml || kubectl set image deployment/frontend frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          kubectl rollout status deployment/frontend --timeout=180s
+          kustomize build . | kubectl apply -f - || kubectl set image deployment/frontend frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
