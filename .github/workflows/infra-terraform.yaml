@@ -34,6 +34,7 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.3.9
+          terraform_wrapper: false
 
       - name: Terraform Init
         working-directory: setup/terraform
@@ -42,7 +43,8 @@ jobs:
       - name: Terraform Apply
         if: ${{ github.event.inputs.action != 'destroy' }}
         working-directory: setup/terraform
-        run: terraform apply -auto-approve
+        run: |
+          terraform apply -auto-approve || (echo "=== RETRYING APPLY OR IMPORTING EXISTING ===" && terraform apply -auto-approve)
 
       - name: Authorize github-action-user in EKS (aws-auth)
         if: ${{ github.event.inputs.action != 'destroy' }}
