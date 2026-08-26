@@ -96,7 +96,11 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         working-directory: starter/frontend
         run: |
-          docker build --build-arg REACT_APP_MOVIE_API_URL="${{ env.REACT_APP_MOVIE_API_URL }}" -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          API_URL="${{ env.REACT_APP_MOVIE_API_URL }}"
+          if [ -z "$API_URL" ]; then
+            API_URL="http://localhost:5000"
+          fi
+          docker build --build-arg REACT_APP_MOVIE_API_URL="$API_URL" -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
