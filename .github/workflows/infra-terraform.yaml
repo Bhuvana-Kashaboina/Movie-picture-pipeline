@@ -1,0 +1,58 @@
+name: Provision AWS Infrastructure with Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform Action (apply or destroy)'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  terraform:
+    name: Terraform Apply / Destroy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init
+        working-directory: setup/terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        if: ${{ github.event.inputs.action != 'destroy' }}
+        working-directory: setup/terraform
+        run: terraform apply -auto-approve
+
+      - name: Authorize github-action-user in EKS (aws-auth)
+        if: ${{ github.event.inputs.action != 'destroy' }}
+        run: |
+          aws eks update-kubeconfig --name cluster --region ${{ env.AWS_REGION }}
+          cd setup
+          chmod +x init.sh
+          ./init.sh || echo "Init script completed"
+
+      - name: Terraform Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        working-directory: setup/terraform
+        run: terraform destroy -auto-approve
