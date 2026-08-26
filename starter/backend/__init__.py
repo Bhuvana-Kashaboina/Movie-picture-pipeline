@@ -1,4 +1,4 @@
-"""Movie Picture Backend API v1.1.1."""
+"""Movie Picture Backend API v1.2.0."""
 import os
 from flask import Flask
 from flask_cors import CORS
