@@ -85,6 +85,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Create ECR repository if not exists
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION 2>/dev/null || \
+          aws ecr create-repository --repository-name $ECR_REPOSITORY --region $AWS_REGION
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -96,8 +101,10 @@ jobs:
           REACT_APP_MOVIE_API_URL: ${{ secrets.REACT_APP_MOVIE_API_URL }}
         working-directory: starter/frontend
         run: |
+          set -ex
           API_URL="${REACT_APP_MOVIE_API_URL:-http://localhost:5000}"
-          echo "Building with API_URL=$API_URL"
+          echo "Building image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "API_URL: $API_URL"
           docker build --build-arg REACT_APP_MOVIE_API_URL="$API_URL" \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
