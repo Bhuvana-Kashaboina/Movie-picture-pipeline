@@ -108,7 +108,5 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-          cd starter/backend/k8s
-          kustomize edit set image backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/backend
+          kubectl set image deployment/backend backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          kubectl rollout status deployment/backend --timeout=120s
