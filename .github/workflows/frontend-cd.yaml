@@ -84,11 +84,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Create ECR repository if not exists
-        run: |
-          aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION 2>/dev/null || \
-          aws ecr create-repository --repository-name $ECR_REPOSITORY --region $AWS_REGION
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -119,10 +114,9 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          set -e
           echo "Updating kubeconfig..."
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
           cd starter/frontend/k8s
           kustomize edit set image frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           kustomize build .
-          kustomize build . | kubectl apply -f - || (kubectl set image deployment/frontend frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG 2>/dev/null || echo "Deployed image successfully: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG")
+          kustomize build . | kubectl apply -f - || (kubectl set image deployment/frontend frontend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG 2>/dev/null || echo "Deployed image successfully")
